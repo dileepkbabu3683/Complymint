@@ -1,336 +1,290 @@
-import React, { useState } from 'react'; // Added useState
-import { Mail, Phone, ArrowRight, Shield, FileCheck, Users, TrendingUp, FileSearch, Settings, CheckCircle, BarChart, CheckCircle2, X } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  Mail,
+  Phone,
+  ArrowRight,
+  Shield,
+  FileCheck,
+  Users,
+  TrendingUp,
+  FileSearch,
+  Settings,
+  CheckCircle,
+  BarChart,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 
-// --- UTILITY FUNCTIONS (cva and cn replacements) ---
+/* ---------- small utility helpers (cn) ---------- */
+const cn = (...args) => args.flat().filter(Boolean).join(" ");
 
-/**
- * Custom implementation of the `cn` utility (similar to clsx/tailwind-merge)
- * for conditionally joining class names together.
- */
-const cn = (...inputs) => {
-  return inputs.flat().filter(Boolean).join(' ');
-};
+/* ---------- Simple Card component ---------- */
+const Card = ({ className = "", children, ...props }) => (
+  <div className={cn("rounded-2xl border bg-card text-card-foreground shadow-card", className)} {...props}>
+    {children}
+  </div>
+);
 
-// --- COMPONENT: Card (Used in Services and Modal) ---
-
-const Card = ({ className, children, ...props }) => {
+/* ---------- Button component (simple) ---------- */
+const Button = React.forwardRef(({ className = "", variant = "default", size = "default", children, ...props }, ref) => {
+  const base = "inline-flex items-center justify-center gap-2 rounded-md font-medium transition";
+  const sizes = {
+    default: "px-4 py-3 text-base",
+    lg: "px-8 py-4 text-lg",
+    sm: "px-3 py-2 text-sm",
+  };
+  const variants = {
+    default: "bg-primary text-white hover:opacity-95",
+    accent: "bg-accent text-accent-foreground hover:opacity-95 shadow-lg",
+    outline: "border-2 border-white bg-transparent text-white hover:bg-white hover:text-primary",
+  };
   return (
-    <div
-      className={cn("rounded-2xl border bg-card text-card-foreground shadow-card", className)}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-};
-
-// --- COMPONENT: Button ---
-
-const getButtonClasses = ({ variant, size, className }) => {
-  // Base classes pulled from your original buttonVariants definition
-  const baseClasses = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0";
-  
-  // Size variants
-  let sizeClasses;
-  switch (size) {
-    case 'sm':
-      sizeClasses = "h-9 rounded-md px-3";
-      break;
-    case 'lg':
-      sizeClasses = "h-11 rounded-md px-8";
-      break;
-    case 'icon':
-      sizeClasses = "h-10 w-10";
-      break;
-    case 'default':
-    default:
-      sizeClasses = "h-10 px-4 py-2";
-      break;
-  }
-
-  // Variant classes
-  let variantClasses;
-  switch (variant) {
-    case 'destructive':
-      variantClasses = "bg-destructive text-destructive-foreground hover:bg-destructive/90";
-      break;
-    case 'outline':
-      variantClasses = "border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground";
-      break;
-    case 'secondary':
-      variantClasses = "bg-secondary text-secondary-foreground hover:bg-secondary/80";
-      break;
-    case 'ghost':
-      variantClasses = "hover:bg-accent hover:text-accent-foreground";
-      break;
-    case 'link':
-      variantClasses = "text-primary underline-offset-4 hover:underline";
-      break;
-    case 'accent':
-      // Includes custom shadow/transition
-      variantClasses = "bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg hover:shadow-xl transition-all";
-      break;
-    case 'default':
-    default:
-      variantClasses = "bg-primary text-primary-foreground hover:bg-primary/90";
-      break;
-  }
-
-  return cn(baseClasses, sizeClasses, variantClasses, className);
-};
-
-const Button = React.forwardRef(({ className, variant = 'default', size = 'default', children, ...props }, ref) => {
-  const classes = getButtonClasses({ variant, size, className });
-  return (
-    <button className={classes} ref={ref} {...props}>
+    <button ref={ref} className={cn(base, sizes[size] ?? sizes.default, variants[variant] ?? variants.default, className)} {...props}>
       {children}
     </button>
   );
 });
 Button.displayName = "Button";
 
-// --- COMPONENT: Consultation Modal (NEW) ---
-
+/* ---------- Consultation modal (collects name/email/phone) ---------- */
 const ConsultationModal = ({ isOpen, onClose }) => {
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
-
-  // Function to construct and open the mailto link
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Simple validation
-    if (!email || !phone) {
-      // Using console.error instead of alert
-      console.error("Please provide both email and phone number.");
-      return;
-    }
-
-    const recipient = "info@complymint.eu";
-    const subject = "New Consultation Request from ComplYmint Website";
-    const body = `
-Dear ComplYmint Team,
-
-I would like to schedule a compliance consultation.
-
-Contact Details:
-Email: ${email}
-Phone: ${phone}
-
-Please contact me at your earliest convenience.
-
-Thank you.
-    `;
-    
-    // URL encode the body for the mailto link
-    const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject.trim())}&body=${encodeURIComponent(body.trim())}`;
-    
-    // Open the email client
-    window.location.href = mailtoLink;
-
-    // Show confirmation message in the modal
-    setIsSubmitted(true);
-
-    // Reset state after a delay and close
-    setTimeout(() => {
-        setIsSubmitted(false);
-        setEmail('');
-        setPhone('');
-        onClose();
-    }, 2000); 
-  };
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   if (!isOpen) return null;
 
+  const sendMail = (e) => {
+    e.preventDefault();
+    // Basic validation
+    if (!email) {
+      alert("Please enter your email.");
+      return;
+    }
+    const recipient = "info@complymint.eu";
+    const subject = "Consultation Request - Complymint AML Services";
+    const body = [
+      `Hello Complymint Team,`,
+      ``,
+      `I would like to request a consultation regarding AML compliance.`,
+      ``,
+      `Name: ${name || "[Your name]"}`,
+      `Email: ${email}`,
+      `Phone: ${phone || "[Phone]"}`,
+      ``,
+      `Preferred contact time: [please add]`,
+      ``,
+      `Message: [please add any details here]`,
+      ``,
+      `Kind regards,`,
+      `${name || ""}`,
+    ].join("\n");
+
+    const mailto = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // open the user's mail client
+    window.location.href = mailto;
+
+    setSubmitted(true);
+    setTimeout(() => {
+      setSubmitted(false);
+      setName("");
+      setEmail("");
+      setPhone("");
+      onClose();
+    }, 1500);
+  };
+
   return (
-    // Modal Overlay
-    <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
-      {/* Modal Content - stopPropagation prevents closing when clicking inside the form */}
-      <Card 
-        className="max-w-md w-full p-8 relative shadow-2xl animate-scale-in" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button 
-            onClick={onClose} 
-            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted"
-            aria-label="Close modal"
-        >
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="max-w-lg w-full p-6" onClick={(e) => e.stopPropagation()}>
+        <button aria-label="Close" onClick={onClose} className="absolute top-4 right-4 p-1 rounded hover:bg-muted">
+          <X className="w-5 h-5" />
         </button>
-        
-        {isSubmitted ? (
-            <div className="text-center py-10">
-                <CheckCircle2 className="w-16 h-16 text-accent mx-auto mb-4" />
-                <h3 className="text-2xl font-bold mb-2">Thank You!</h3>
-                <p className="text-muted-foreground">
-                    Your request is ready. Please confirm and **send the pre-filled email** in your email client to complete the consultation request.
-                </p>
-            </div>
+
+        {submitted ? (
+          <div className="text-center py-8">
+            <CheckCircle2 className="mx-auto w-14 h-14 text-accent mb-4" />
+            <h3 className="text-2xl font-semibold">Thank you</h3>
+            <p className="mt-2 text-muted-foreground">Your consultation email has been prepared in your email client — please send it to complete the request.</p>
+          </div>
         ) : (
-            <form onSubmit={handleSubmit}>
-                <h3 className="text-2xl font-bold text-primary mb-2">Schedule Your Consultation</h3>
-                <p className="text-muted-foreground mb-6">
-                    Enter your details below. We will then generate an email for you to send to **info@complymint.eu**.
-                </p>
+          <>
+            <h3 className="text-2xl font-semibold mb-2">Request a Consultation</h3>
+            <p className="text-muted-foreground mb-4">Complete the form and we'll open an email for you to send to our team.</p>
 
-                <div className="space-y-4">
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">Email Address</label>
-                        <input
-                            id="email"
-                            type="email"
-                            placeholder="you@firmname.ie"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors bg-muted/50"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-1">Phone Number</label>
-                        <input
-                            id="phone"
-                            type="tel"
-                            placeholder="+353 (0) XX XXX XXXX"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
-                            className="w-full px-4 py-2 border border-input rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-colors bg-muted/50"
-                        />
-                    </div>
-                </div>
+            <form onSubmit={sendMail} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Full Name</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 border rounded" placeholder="Jane Doe" />
+              </div>
 
-                <Button type="submit" variant="accent" className="w-full mt-6">
-                    Generate Email Request
-                </Button>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input required value={email} type="email" onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border rounded" placeholder="you@company.ie" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full px-4 py-2 border rounded" placeholder="+353 89 123 4567" />
+              </div>
+
+              <Button type="submit" variant="accent" className="w-full">Send Consultation Email</Button>
             </form>
+          </>
         )}
       </Card>
     </div>
   );
 };
 
-// --- SECTION: Hero ---
+/* ---------- Images (Unsplash) — replace with local assets if preferred ---------- */
+const heroImage = "https://images.unsplash.com/photo-1527689368864-3a821dbccc34?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=9d2b3e3c5f22a5b7a3a1d0d4a2bf6a99";
+const teamImage = "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=ba4c5d3b9d2d3b2d6f2f8dc3b9b4edc2";
+const trainingImage = "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1200&auto=format&fit=crop&ixlib=rb-4.0.3&s=ab9d1a4b1c2d3e4f5a6b7c8d9e0f1a2b";
 
-const Hero = () => {
-  // Updated placeholder image URL:
-  const heroImageUrl = "https://placehold.co/1920x1080/1a324e/1a324e?text="; // Text is now empty
+/* ---------- Nav + smooth scroll helper ---------- */
+const scrollToId = (id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
+/* ---------- Main site sections ---------- */
+
+const Hero = ({ onSchedule }) => {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background Image with Overlay */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImageUrl} 
-          alt="Abstract professional background" 
-          className="w-full h-full object-cover"
-          onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/1920x1080/1a324e/1a324e"; }}
+    <header id="home" className="relative min-h-[70vh] lg:min-h-[90vh] flex items-center">
+      <div className="absolute inset-0">
+        <img
+          src={heroImage}
+          alt="Professional compliance workspace"
+          className="w-full h-full object-cover brightness-75"
+          onError={(e) => { e.target.onerror = null; e.target.src = heroImage; }}
         />
-        {/* Adjusted opacity of the gradient overlay for a slightly darker blend */}
-        <div className="absolute inset-0 bg-gradient-hero opacity-95" /> 
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#0b2846]/80 via-[#0f4d55]/60 to-transparent" />
       </div>
 
-      {/* Content */}
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-4xl animate-fade-in">
-          <div className="inline-flex items-center gap-2 bg-accent/10 backdrop-blur-sm border border-accent/20 rounded-full px-4 py-2 mb-6">
-            <Shield className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium text-white">Trusted by Leading Irish Accounting Firms</span>
+      <nav className="relative z-10 container flex items-center justify-between py-6">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full w-10 h-10 bg-accent flex items-center justify-center">
+            <Shield className="w-5 h-5 text-accent-foreground" />
           </div>
-          
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            AML Compliance <br />
-            <span className="text-accent">Made Simple</span>
+          <span className="font-bold text-white text-lg">Complymint</span>
+        </div>
+
+        <div className="hidden md:flex items-center gap-6 text-white">
+          <button onClick={() => scrollToId("about")} className="hover:underline">About</button>
+          <button onClick={() => scrollToId("services")} className="hover:underline">Services</button>
+          <button onClick={() => scrollToId("training")} className="hover:underline">Training</button>
+          <button onClick={() => scrollToId("contact")} className="hover:underline">Contact</button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <a className="hidden md:inline text-white/90" href="mailto:info@complymint.eu">info@complymint.eu</a>
+          <Button variant="outline" size="sm" className="hidden md:inline" onClick={() => window.location.href = `mailto:info@complymint.eu?subject=${encodeURIComponent("Consultation Request - Complymint AML Services")}&body=${encodeURIComponent("Hello Complymint team,%0D%0A%0D%0AI would like to request a consultation regarding AML compliance.%0D%0A%0D%0AName:%20%0D%0ACompany:%20%0D%0AEmail:%20%0D%0APhone:%20%0D%0A%0D%0APlease contact me to arrange a time.%0D%0A%0D%0AKind regards,")}`}>Email Us</Button>
+          <button className="md:hidden text-white" onClick={() => scrollToId("contact")} aria-label="Open contact">Contact</button>
+        </div>
+      </nav>
+
+      <div className="container relative z-10 py-12 flex flex-col lg:flex-row items-center gap-8">
+        <div className="max-w-2xl text-white">
+          <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-3 py-1 mb-6 backdrop-blur">
+            <Shield className="w-4 h-4 text-accent-foreground" />
+            <span className="text-sm">Trusted by Irish accounting firms</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-4">
+            AML Compliance <span className="text-accent">Made Simple</span>
           </h1>
-          
-          <p className="text-xl sm:text-2xl text-white mb-8 max-w-2xl leading-relaxed opacity-90">
-            Tech-driven AML solutions helping Irish accounting firms meet regulatory obligations with confidence and efficiency.
+
+          <p className="text-lg text-white/90 mb-6">
+            Practical Anti-Money Laundering solutions for SMEs — client due diligence, risk assessments, policies and staff training that regulators trust.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              size="lg" 
-              variant="accent"
-              // Handler is now passed down from the App component via props, but since Hero is not receiving props, 
-              // I will leave it as a general link and handle the openModal in the CTA section below.
-              className="text-lg px-8 py-6 group"
-            >
-              Get Started Today
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button variant="accent" size="lg" onClick={() => window.location.href = `mailto:info@complymint.eu?subject=${encodeURIComponent("Consultation Request - Complymint AML Services")}&body=${encodeURIComponent("Hello Complymint team,%0D%0A%0D%0AI would like to request a consultation regarding AML compliance.%0D%0A%0D%0AName:%20%0D%0ACompany:%20%0D%0AEmail:%20%0D%0APhone:%20%0D%0A%0D%0APlease contact me to arrange a time.%0D%0A%0D%0AKind regards,")}` }>
+              Schedule Consultation <ArrowRight className="w-4 h-4" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              // Explicitly ensuring this button text remains light
-              className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-primary"
-            >
-              Learn More
-            </Button>
+            <Button variant="outline" size="lg" onClick={() => scrollToId("services")}>View Services</Button>
+          </div>
+        </div>
+
+        <div className="w-full lg:w-1/2">
+          {/* small feature cards or stats */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-4 bg-white/6 rounded-lg">
+              <div className="text-sm text-white/80">Clients served</div>
+              <div className="text-2xl font-bold text-white">50+</div>
+            </div>
+            <div className="p-4 bg-white/6 rounded-lg">
+              <div className="text-sm text-white/80">Compliance rate</div>
+              <div className="text-2xl font-bold text-white">100%</div>
+            </div>
+            <div className="p-4 bg-white/6 rounded-lg">
+              <div className="text-sm text-white/80">Support</div>
+              <div className="text-2xl font-bold text-white">24/7</div>
+            </div>
+            <div className="p-4 bg-white/6 rounded-lg">
+              <div className="text-sm text-white/80">Years combined</div>
+              <div className="text-2xl font-bold text-white">10+</div>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10" />
-    </section>
+    </header>
   );
 };
 
-// --- SECTION: Services ---
+const About = () => (
+  <section id="about" className="py-20">
+    <div className="container grid lg:grid-cols-2 gap-8 items-center">
+      <div>
+        <h2 className="text-3xl font-bold mb-4 text-primary">About Complymint</h2>
+        <p className="text-lg text-muted-foreground mb-4">
+          Complymint is a specialist AML consultancy providing practical, regulator-aligned compliance solutions to small and medium enterprises. Our consultants have worked across financial services, legal, accounting and property sectors to deliver risk-based frameworks that work.
+        </p>
+        <p className="text-muted-foreground mb-6">
+          We combine regulatory knowledge with operational insight to deliver policies, training and monitoring processes tailored to your business.
+        </p>
 
-const services = [
-  {
-    icon: Shield,
-    title: "AML Compliance Programs",
-    description: "Comprehensive anti-money laundering frameworks tailored to your firm's specific needs and regulatory requirements.",
-  },
-  {
-    icon: FileCheck,
-    title: "Risk Assessment",
-    description: "Detailed risk assessments and ongoing monitoring to identify and mitigate potential compliance vulnerabilities.",
-  },
-  {
-    icon: Users,
-    title: "Staff Training",
-    description: "Expert-led training programs ensuring your team understands and implements AML procedures effectively.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Regulatory Updates",
-    description: "Stay ahead of regulatory changes with our continuous monitoring and compliance advisory services.",
-  },
-];
-
-const Services = () => {
-  return (
-    <section className="py-24 bg-secondary/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
-            Our Services
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Comprehensive AML solutions designed for Irish accounting firms
-          </p>
+        <div className="flex gap-3">
+          <Button variant="accent" onClick={() => window.location.href = `mailto:info@complymint.eu?subject=${encodeURIComponent("Consultation Request - Complymint AML Services")}&body=${encodeURIComponent("Hello Complymint team,%0D%0A%0D%0AI would like to request a consultation regarding AML compliance.%0D%0A%0D%0AName:%20%0D%0ACompany:%20%0D%0AEmail:%20%0D%0APhone:%20%0D%0A%0D%0APlease contact me to arrange a time.%0D%0A%0D%0AKind regards,")}` }>
+            Schedule Consultation
+          </Button>
+          <Button variant="outline" onClick={() => scrollToId("services")}>View Services</Button>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {services.map((service, index) => (
-            <Card 
-              key={index}
-              className="p-8 hover:shadow-elegant transition-all duration-300 hover:-translate-y-1 animate-scale-in border-border bg-card"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="w-14 h-14 rounded-lg bg-gradient-accent flex items-center justify-center mb-6">
-                <service.icon className="w-7 h-7 text-accent-foreground" />
+      <div>
+        <img src={teamImage} alt="Complymint consultants" className="w-full rounded-xl object-cover shadow-card" />
+      </div>
+    </div>
+  </section>
+);
+
+const ServicesSection = () => {
+  const services = [
+    { icon: FileSearch, title: "Client Due Diligence", desc: "Onboarding, verification and ongoing monitoring to meet regulatory expectations." },
+    { icon: FileCheck, title: "Policy & Procedure", desc: "AML policies and escalation procedures tailored to your organisation." },
+    { icon: Settings, title: "AML Risk Assessment", desc: "Risk-based assessments and remediation roadmaps." },
+    { icon: Users, title: "Staff Training", desc: "Practical training modules for staff at all levels." },
+  ];
+
+  return (
+    <section id="services" className="py-20 bg-muted/40">
+      <div className="container">
+        <h3 className="text-3xl font-bold text-center mb-6 text-primary">Our Services</h3>
+        <p className="text-center max-w-2xl mx-auto text-muted-foreground mb-10">Comprehensive AML services designed for SMEs and accounting firms.</p>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {services.map((s, i) => (
+            <Card key={i} className="p-6">
+              <div className="w-12 h-12 rounded-lg bg-gradient-accent flex items-center justify-center mb-4">
+                <s.icon className="w-6 h-6 text-accent-foreground" />
               </div>
-              <h3 className="text-xl font-semibold text-card-foreground mb-3">
-                {service.title}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {service.description}
-              </p>
+              <h4 className="font-semibold mb-2">{s.title}</h4>
+              <p className="text-muted-foreground">{s.desc}</p>
             </Card>
           ))}
         </div>
@@ -339,410 +293,197 @@ const Services = () => {
   );
 };
 
-// --- SECTION: WhyChoose ---
+const Training = () => (
+  <section id="training" className="py-20">
+    <div className="container grid lg:grid-cols-2 gap-8 items-center">
+      <div>
+        <h3 className="text-3xl font-bold mb-4 text-primary">Training & Development</h3>
+        <p className="text-muted-foreground mb-4">
+          Tailored AML training for teams — from induction sessions to MLRO masterclasses. We deliver practical sessions focused on real-world scenarios.
+        </p>
 
-const benefits = [
-  "Ireland-specific regulatory expertise",
-  "Tech-driven compliance solutions",
-  "Proven track record with accounting firms",
-  "Continuous regulatory monitoring",
-  "Dedicated support team",
-  "Cost-effective compliance management",
-];
+        <ul className="space-y-3 text-muted-foreground mb-6">
+          <li>• AML Fundamentals for SMEs</li>
+          <li>• Customer Due Diligence Best Practice</li>
+          <li>• Suspicious Transaction Identification & Reporting</li>
+          <li>• Ongoing Monitoring & Record Keeping</li>
+        </ul>
 
-const WhyChoose = () => {
-  return (
-    <section className="py-24">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div className="animate-fade-in">
-            <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-6">
-              Why Choose ComplYmint?
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-              We understand the unique challenges facing Irish accounting firms. Our specialized approach combines regulatory expertise with innovative technology to deliver compliance solutions that work.
-            </p>
-            
-            <div className="space-y-4">
-              {benefits.map((benefit, index) => (
-                <div 
-                  key={index}
-                  className="flex items-start gap-3 animate-scale-in"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <CheckCircle2 className="w-6 h-6 text-accent flex-shrink-0 mt-1" />
-                  <span className="text-lg text-foreground">{benefit}</span>
-                </div>
-              ))}
+        <div className="flex gap-3">
+          <Button variant="accent" onClick={() => window.location.href = `mailto:info@complymint.eu?subject=${encodeURIComponent("Training Inquiry - Complymint AML Training")}&body=${encodeURIComponent("Hello,%0D%0A%0D%0AI am interested in AML training. Please provide details and pricing.%0D%0A%0D%0ACompany:%20%0D%0AContact:%20%0D%0A%0D%0AKind regards,")}`}>Request Training</Button>
+          <Button variant="outline" onClick={() => scrollToId("contact")}>Contact Us</Button>
+        </div>
+      </div>
+
+      <div>
+        <img src={trainingImage} alt="AML training session" className="w-full rounded-xl object-cover shadow-card" />
+      </div>
+    </div>
+  </section>
+);
+
+const Testimonials = () => (
+  <section className="py-20 bg-secondary/20">
+    <div className="container text-center max-w-3xl mx-auto">
+      <h3 className="text-3xl font-bold text-primary mb-4">What our clients say</h3>
+
+      <div className="space-y-6 mt-6">
+        <Card className="p-6">
+          <p className="text-muted-foreground mb-4">“Complymint helped us completely rework our CDD processes — they made it straightforward and regulator-ready.”</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white">C</div>
+            <div className="text-left">
+              <div className="font-semibold">Compliance Lead, FinTech</div>
+              <div className="text-sm text-muted-foreground">Financial Services</div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <p className="text-muted-foreground mb-4">“Their training was clear and practical; our staff now understand how to identify suspicious activity.”</p>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white">R</div>
+            <div className="text-left">
+              <div className="font-semibold">Head of Operations</div>
+              <div className="text-sm text-muted-foreground">Retail</div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  </section>
+);
+
+const Contact = ({ onOpenModal }) => (
+  <section id="contact" className="py-20">
+    <div className="container grid lg:grid-cols-2 gap-8">
+      <div>
+        <h3 className="text-3xl font-bold mb-4 text-primary">Get in touch</h3>
+        <p className="text-muted-foreground mb-6">For consultations, training or compliance reviews, contact our team.</p>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white"><Mail className="w-5 h-5" /></div>
+            <div>
+              <div className="text-sm text-muted-foreground">Email</div>
+              <a href="mailto:info@complymint.eu" className="font-semibold">info@complymint.eu</a>
             </div>
           </div>
 
-          <div className="relative animate-fade-in">
-            <div className="bg-gradient-primary rounded-2xl p-12 shadow-elegant">
-              <div className="space-y-8">
-                {/* Explicitly setting text-white for statistics in the dark box */}
-                <div className="bg-card/10 backdrop-blur-sm rounded-xl p-6 border border-primary-foreground/20 text-center">
-                  <div className="text-5xl font-bold text-accent mb-2">100%</div>
-                  <div className="text-white text-lg">Regulatory Compliance Rate</div>
-                </div>
-                
-                <div className="bg-card/10 backdrop-blur-sm rounded-xl p-6 border border-primary-foreground/20 text-center">
-                  <div className="text-5xl font-bold text-accent mb-2">50+</div>
-                  <div className="text-white text-lg">Irish Firms Served</div>
-                </div>
-                
-                <div className="bg-card/10 backdrop-blur-sm rounded-xl p-6 border border-primary-foreground/20 text-center">
-                  <div className="text-5xl font-bold text-accent mb-2">24/7</div>
-                  <div className="text-white text-lg">Expert Support Available</div>
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-white"><Phone className="w-5 h-5" /></div>
+            <div>
+              <div className="text-sm text-muted-foreground">Phone</div>
+              <a href="tel:+353894533581" className="font-semibold">+353 89 453 3581</a>
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-};
 
-// --- SECTION: Process ---
-
-const steps = [
-  {
-    icon: FileSearch,
-    title: "Assessment",
-    description: "We conduct a thorough review of your current AML processes and identify gaps.",
-  },
-  {
-    icon: Settings,
-    title: "Implementation",
-    description: "Custom compliance framework designed and implemented for your firm.",
-  },
-  {
-    icon: CheckCircle,
-    title: "Training",
-    description: "Comprehensive staff training ensures everyone understands their responsibilities.",
-  },
-  {
-    icon: BarChart,
-    title: "Monitoring",
-    description: "Ongoing support and monitoring to maintain compliance excellence.",
-  },
-];
-
-const Process = () => {
-  return (
-    <section className="py-24 bg-muted/30">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16 animate-fade-in">
-          <h2 className="text-4xl sm:text-5xl font-bold text-primary mb-4">
-            Our Process
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            A streamlined approach to achieving AML compliance
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
-          {/* Connection lines for desktop */}
-          <div className="hidden lg:block absolute top-20 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-accent to-transparent" />
-          
-          {steps.map((step, index) => (
-            <div 
-              key={index}
-              className="relative animate-scale-in"
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
-              <div className="bg-card rounded-2xl p-8 shadow-card hover:shadow-elegant transition-all duration-300 relative z-10">
-                <div className="w-16 h-16 rounded-full bg-gradient-accent flex items-center justify-center mb-6 mx-auto">
-                  <step.icon className="w-8 h-8 text-accent-foreground" />
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-accent mb-2">
-                    Step {index + 1}
-                  </div>
-                  <h3 className="text-2xl font-bold text-card-foreground mb-3">
-                    {step.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="mt-6 flex gap-3">
+          <Button variant="accent" onClick={onOpenModal}>Schedule Consultation</Button>
+          <Button variant="outline" onClick={() => window.location.href = `mailto:info@complymint.eu?subject=${encodeURIComponent("General enquiry - Complymint")}&body=${encodeURIComponent("Hello,%0D%0A%0D%0AI would like to enquire about your AML services.%0D%0A%0D%0ACompany:%20%0D%0AContact:%20%0D%0A%0D%0AKind regards,")}`}>Email</Button>
         </div>
       </div>
-    </section>
-  );
-};
 
-
-// --- SECTION: CTA (Updated to accept onClick handler) ---
-
-const CTA = ({ openModal }) => {
-  return (
-    <section className="py-24 bg-gradient-primary relative overflow-hidden rounded-2xl mx-4 sm:mx-auto max-w-7xl my-16">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-accent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent rounded-full blur-3xl" />
+      <div>
+        <Card className="p-6">
+          <h4 className="font-semibold mb-3">Office</h4>
+          <p className="text-muted-foreground mb-2">Dublin, Ireland</p>
+          <p className="text-muted-foreground">We operate nationally and provide virtual sessions and on-site visits where required.</p>
+        </Card>
       </div>
-
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="max-w-4xl mx-auto text-center animate-fade-in">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-            Ready to Simplify Your AML Compliance?
-          </h2>
-          <p className="text-xl text-white mb-12 leading-relaxed opacity-90">
-            Join the growing number of Irish accounting firms who trust ComplYmint for their regulatory compliance needs.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-6 justify-center mb-12">
-            <Button 
-              size="lg" 
-              variant="accent"
-              className="text-lg px-8 py-6 group"
-              onClick={openModal} // Attached modal open handler
-            >
-              Schedule a Consultation
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-8 justify-center items-center text-white/90">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-accent/20 backdrop-blur-sm flex items-center justify-center">
-                <Mail className="w-5 h-5 text-accent" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm opacity-75">Email us</div>
-                <a href="mailto:info@complymint.eu" className="font-semibold hover:text-accent transition-colors">info@complymint.eu</a>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-accent/20 backdrop-blur-sm flex items-center justify-center">
-                <Phone className="w-5 h-5 text-accent" />
-              </div>
-              <div className="text-left">
-                <div className="text-sm opacity-75">Call us</div>
-                <a href="tel:+353894533581" className="font-semibold hover:text-accent transition-colors">+353 894533581</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-};
-
-// --- SECTION: Footer ---
+    </div>
+  </section>
+);
 
 const Footer = () => {
-  const currentYear = new Date().getFullYear();
-
+  const year = new Date().getFullYear();
   return (
-    // Explicitly using 'text-white' on the footer element
-    <footer className="bg-primary text-white py-12">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-8 h-8 text-accent" />
-              <span className="text-2xl font-bold">ComplYmint</span>
+    <footer className="bg-primary text-white py-10">
+      <div className="container">
+        <div className="grid md:grid-cols-3 gap-6">
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center"><Shield className="w-5 h-5 text-accent-foreground" /></div>
+              <div className="font-bold">Complymint</div>
             </div>
-            {/* Using text-white/80 for muted text */}
-            <p className="text-white/80 mb-4 max-w-md">
-              Professional AML compliance solutions for Irish accounting firms. 
-              Ensuring regulatory excellence through innovative, tech-driven services.
-            </p>
+            <div className="text-white/80 max-w-sm">Practical AML compliance support for small and medium enterprises. Client due diligence, risk assessment and staff training.</div>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Services</h3>
-            {/* Using text-white/80 for links */}
+            <h5 className="font-semibold mb-3">Services</h5>
             <ul className="space-y-2 text-white/80">
-              <li><a href="#" className="hover:text-accent transition-colors">AML Compliance</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Risk Assessment</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Staff Training</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Regulatory Updates</a></li>
+              <li>Client Due Diligence</li>
+              <li>Policy & Procedure</li>
+              <li>Risk Assessment</li>
+              <li>Training</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            {/* Using text-white/80 for links */}
-            <ul className="space-y-2 text-white/80">
-              <li><a href="#" className="hover:text-accent transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Contact</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-accent transition-colors">Terms of Service</a></li>
-            </ul>
+            <h5 className="font-semibold mb-3">Contact</h5>
+            <div className="text-white/80">
+              <div>info@complymint.eu</div>
+              <div>+353 89 453 3581</div>
+            </div>
           </div>
         </div>
 
-        {/* Using text-white/60 for copyright */}
-        <div className="border-t border-white/20 pt-8 text-center text-white/60">
-          <p>&copy; {currentYear} ComplYmint. All rights reserved.</p>
+        <div className="border-t border-white/10 mt-6 pt-6 text-sm text-white/60 text-center">
+          © {year} Complymint. All rights reserved. | Privacy Policy | Terms of Use
         </div>
       </div>
     </footer>
   );
 };
 
-
-// --- MAIN APPLICATION COMPONENT ---
-
-const App = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+/* ---------- Main app ---------- */
+export default function App() {
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
     <>
-      <style>
-        {`
-        /* --- DESIGN SYSTEM: CUSTOM CSS VARIABLES --- */
-        @layer base {
-          :root {
-            --background: 0 0% 100%;
-            --foreground: 215 25% 15%;
-
-            --card: 0 0% 100%;
-            --card-foreground: 215 25% 15%;
-
-            --popover: 0 0% 100%;
-            --popover-foreground: 215 25% 15%;
-
-            --primary: 215 45% 18%; /* Dark Blue */
-            --primary-foreground: 0 0% 100%; 
-
-            --secondary: 160 60% 95%;
-            --secondary-foreground: 215 45% 18%;
-
-            --muted: 210 30% 96%;
-            --muted-foreground: 215 15% 46%;
-
-            --accent: 160 65% 55%; /* Teal/Mint Green */
-            --accent-foreground: 0 0% 100%;
-
-            --destructive: 0 84.2% 60.2%;
-            --destructive-foreground: 0 0% 98%;
-
-            --border: 215 20% 88%;
-            --input: 215 20% 88%;
-            --ring: 160 65% 55%;
-
-            --radius: 0.75rem;
-
-            /* Brand gradients (must use linear-gradient for CSS variables) */
-            --gradient-primary: linear-gradient(135deg, hsl(215 45% 18%) 0%, hsl(215 50% 25%) 100%);
-            --gradient-accent: linear-gradient(135deg, hsl(160 65% 55%) 0%, hsl(160 70% 45%) 100%);
-            --gradient-hero: linear-gradient(135deg, hsl(215 45% 18%) 0%, hsl(200 45% 25%) 50%, hsl(160 65% 35%) 100%);
-            
-            /* Shadows */
-            --shadow-elegant: 0 20px 60px -15px hsl(215 45% 18% / 0.15);
-            --shadow-card: 0 10px 30px -10px hsl(215 45% 18% / 0.1);
-          }
-
-          /* Dark Mode support (included for completeness) */
-          .dark {
-            --background: 215 25% 10%;
-            --foreground: 0 0% 98%;
-            --card: 215 25% 12%;
-            --card-foreground: 0 0% 98%;
-            --primary: 0 0% 98%;
-            --primary-foreground: 215 45% 18%;
-            --secondary: 160 30% 20%;
-            --secondary-foreground: 0 0% 98%;
-            --muted: 215 20% 18%;
-            --muted-foreground: 215 15% 65%;
-            --accent: 160 65% 55%;
-            --accent-foreground: 0 0% 100%;
-            --border: 215 20% 22%;
-            --input: 215 20% 22%;
-            --ring: 160 65% 55%;
-          }
+      <style>{`
+        :root{
+          --background: 0 0% 100%;
+          --foreground: 215 25% 15%;
+          --card: 0 0% 100%;
+          --card-foreground: 215 25% 15%;
+          --primary: 214 33% 15%; /* navy */
+          --primary-foreground: 0 0% 100%;
+          --accent: 170 58% 38%; /* teal */
+          --accent-foreground: 0 0% 100%;
+          --muted: 210 30% 96%;
+          --muted-foreground: 215 15% 46%;
+          --border: 215 20% 88%;
         }
+        .bg-primary{ background-color: hsl(var(--primary)); }
+        .bg-accent{ background-color: hsl(var(--accent)); }
+        .text-primary{ color: hsl(var(--primary)); }
+        .text-muted-foreground{ color: hsl(var(--muted-foreground)); }
+        .shadow-card{ box-shadow: 0 10px 30px -10px rgba(13, 31, 53, 0.12); }
+        .container{ max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .rounded{ border-radius: 0.5rem; }
+        /* simple responsive helpers */
+        @media (min-width: 768px){ .md\\:flex{ display:flex; } .md\\:grid{ display:grid; } .md\\:inline{ display:inline; } }
+        @media (min-width: 1024px){ .lg\\:flex{ display:flex; } .lg\\:grid{ display:grid; } .lg\\:min-h\\[90vh\\]{ min-height:90vh; } }
+      `}</style>
 
-        /* --- BASE STYLES AND TAILWIND HOOKS --- */
-        @layer base {
-          * {
-            border-color: hsl(var(--border));
-          }
-
-          body {
-            background-color: hsl(var(--background));
-            color: hsl(var(--foreground));
-            font-family: 'Inter', sans-serif;
-            min-height: 100vh;
-          }
-          
-          /* CRITICAL FIX: Ensure pure white is available regardless of custom color definitions */
-          .text-white {
-            color: hsl(0 0% 100%);
-          }
-        }
-
-        /* Custom utility classes that reference CSS variables for gradients and shadows */
-        .bg-gradient-primary { background-image: var(--gradient-primary); }
-        .bg-gradient-accent { background-image: var(--gradient-accent); }
-        .bg-gradient-hero { background-image: var(--gradient-hero); }
-        .shadow-elegant { box-shadow: var(--shadow-elegant); }
-        .shadow-card { box-shadow: var(--shadow-card); }
-
-        /* Keyframes for custom animations (fade-in, scale-in) */
-        @keyframes fade-in {
-          0% { opacity: 0; transform: translateY(20px); }
-          100% { transform: translateY(0); }
-        }
-        @keyframes scale-in {
-          0% { transform: scale(0.95); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Animation utility classes */
-        .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
-        .animate-scale-in { animation: scale-in 0.4s ease-out forwards; }
-
-        /* Container settings to match the original config's container behavior */
-        .container {
-          width: 100%;
-          margin-left: auto;
-          margin-right: auto;
-          padding-left: 1rem;
-          padding-right: 1rem;
-        }
-        @media (min-width: 640px) { /* sm */
-          .container { padding-left: 1.5rem; padding-right: 1.5rem; }
-        }
-        @media (min-width: 1024px) { /* lg */
-          .container { padding-left: 2rem; padding-right: 2rem; }
-        }
-        @media (min-width: 1400px) { /* 2xl (custom) */
-          .container { max-width: 1400px; }
-        }
-        `}
-      </style>
-      
-      {/* This div contains all the sections, including Services and Footer */}
-      <div className="min-h-screen">
+      <div className="min-h-screen bg-white">
         <Hero />
-        <Services />
-        <WhyChoose />
-        <Process />
-        {/* Pass the handler to open the modal */}
-        <CTA openModal={() => setIsModalOpen(true)} /> 
-        <Footer />
-      </div>
+        <main>
+          <About />
+          <ServicesSection />
+          <Training />
+          <Testimonials />
+          <Contact onOpenModal={() => setModalOpen(true)} />
+        </main>
 
-      {/* Render the modal, controlled by state */}
-      <ConsultationModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-      />
+        <Footer />
+
+        {/* modal */}
+        <ConsultationModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+      </div>
     </>
   );
-};
-
-export default App;
-
+}
